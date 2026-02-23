@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { HexLayout } from '../hex/types';
   import type { Scale } from '../hex/scale';
-  import type { ADSRParams } from '../audio/envelope';
+  import type { ADSRParams } from '../audio/AudioEngine';
   import type { GlissandoMode } from '../input/TouchSystem';
   import { PRESET_LIST } from '../hex/presets';
   import { SCALE_LIST } from '../hex/scale';

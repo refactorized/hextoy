@@ -17,6 +17,7 @@
     glissandoMode = 'legato',
     onNoteEvent,
     onActiveChange,
+    onPanic,
   }: {
     gridConfig: GridConfig;
     scale: Scale;
@@ -25,11 +26,12 @@
     glissandoMode?: GlissandoMode;
     onNoteEvent?: NoteEventHandler;
     onActiveChange?: (notes: Set<number>) => void;
+    onPanic?: () => void;
   } = $props();
 
   let canvasEl: HTMLCanvasElement;
   let renderer: HexRenderer;
-  let touchSystem: TouchSystem;
+  let touchSystem: TouchSystem | null = $state(null);
   let containerEl: HTMLDivElement;
 
   let origin: Point = $state({ x: 0, y: 0 });
@@ -43,7 +45,6 @@
     viewHeight = rect.height;
     origin = { x: viewWidth / 2, y: viewHeight / 2 };
     renderer?.resize(viewWidth, viewHeight);
-    touchSystem?.setOrigin(origin);
     updateRenderState();
   }
 
@@ -60,13 +61,22 @@
     });
   }
 
-  // Update touch system when config changes
+  // Update touch system origin (no note release needed)
   $effect(() => {
-    touchSystem?.setGridConfig(gridConfig);
+    if (!touchSystem) return;
+    touchSystem.setOrigin(origin);
+  });
+
+  // Update touch system when grid config changes
+  // setGridConfig releases stale notes and updates the layout
+  $effect(() => {
+    if (!touchSystem) return;
+    touchSystem.setGridConfig(gridConfig);
   });
 
   $effect(() => {
-    touchSystem?.setGlissandoMode(glissandoMode);
+    if (!touchSystem) return;
+    touchSystem.setGlissandoMode(glissandoMode);
   });
 
   // Re-render when props change
@@ -77,15 +87,20 @@
 
   onMount(() => {
     renderer = new HexRenderer(canvasEl);
-    touchSystem = new TouchSystem(canvasEl);
-    touchSystem.setGridConfig(gridConfig);
-    touchSystem.setOrigin(origin);
-    touchSystem.setGlissandoMode(glissandoMode);
+    const ts = new TouchSystem(canvasEl);
+    ts.setOrigin(origin);
+    ts.setGridConfig(gridConfig);
+    ts.setGlissandoMode(glissandoMode);
 
-    if (onNoteEvent) touchSystem.onNoteEvent(onNoteEvent);
-    if (onActiveChange) touchSystem.onActiveChange(onActiveChange);
+    if (onNoteEvent) ts.onNoteEvent(onNoteEvent);
+    if (onActiveChange) ts.onActiveChange(onActiveChange);
+    if (onPanic) ts.onPanic(onPanic);
 
     const cleanupGestures = preventGestures(canvasEl);
+
+    // Set $state — this triggers the $effects above to subscribe
+    touchSystem = ts;
+
     updateSize();
 
     // Render loop
@@ -102,7 +117,7 @@
     return () => {
       cancelAnimationFrame(animFrameId);
       ro.disconnect();
-      touchSystem.destroy();
+      ts.destroy();
       cleanupGestures();
     };
   });

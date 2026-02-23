@@ -1,13 +1,12 @@
 <script lang="ts">
   import HexCanvas from './ui/HexCanvas.svelte';
   import SettingsPanel from './ui/SettingsPanel.svelte';
-  import { DEFAULT_PRESET, type PRESETS } from './hex/presets';
+  import { DEFAULT_PRESET } from './hex/presets';
   import { DEFAULT_SCALE, type Scale } from './hex/scale';
   import { midiNoteToPitchClass } from './hex/layout';
   import type { GridConfig, HexLayout } from './hex/types';
   import type { NoteEvent } from './events/types';
-  import { AudioEngine } from './audio/AudioEngine';
-  import { DEFAULT_ADSR, type ADSRParams } from './audio/envelope';
+  import { AudioEngine, DEFAULT_ADSR, type ADSRParams } from './audio/AudioEngine';
   import type { GlissandoMode } from './input/TouchSystem';
 
   const DEFAULT_ROOT = 60;
@@ -44,6 +43,11 @@
 
   function handleActiveChange(notes: Set<number>) {
     activeNotes = notes;
+  }
+
+  function handlePanic() {
+    audioEngine.panic();
+    activeNotes = new Set();
   }
 
   function handleLayoutChange(layout: HexLayout) {
@@ -83,6 +87,7 @@
     {glissandoMode}
     onNoteEvent={handleNoteEvent}
     onActiveChange={handleActiveChange}
+    onPanic={handlePanic}
   />
 
   <button class="gear-btn" onclick={() => settingsOpen = !settingsOpen}>
